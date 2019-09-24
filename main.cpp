@@ -87,6 +87,7 @@ static const Card FESTIVAL(6, "Festival", "Action", 2, 1, 2, 0);
 static const Card SMITHY(7, "Smithy", "Action", 0, 0, 0, 3);
 static const Card VILLAGE(8, "Village", "Action", 2, 0, 0, 1);
 static const Card COUNCIL_ROOM(9, "Council Room", "Action", 0, 1, 0, 4);
+static const Card THRONE_ROOM(0, "Throne Room", "Action", 0, 0, 0, 0);
 static const Card KINGDOM[10] = {COPPER, SILVER, GOLD, LABORATORY, MARKET, MILITIA,
                                  FESTIVAL, SMITHY, VILLAGE, COUNCIL_ROOM};
 
@@ -351,36 +352,22 @@ public:
         } else if (card_being_played.cards == 2) {
             vector<GameState_and_Freq> new_game_states;
 
-//            vector<Card> all_cards;
-//            for (Card c : KINGDOM) {
-//                for (int i = 0; i < game_state.deck.num_of(c); ++i) {
-//                    all_cards.push_back(c);
-//                }
-//            }
-//            for (int j = 0; j < all_cards.size(); ++j) {
-//                Card c1 = all_cards.at(j);
-//                for (int k = 0; k < all_cards.size(); ++k) {
-//                    if (j != k) {
-//                        Card c2 = all_cards.at(k);
-//                        GameState new_gs = game_state.move_card_from_deck_to_hand(c1).move_card_from_deck_to_hand(c2);
-//                        new_game_states.emplace_back(new_gs, 1);
-//                    }
-//                }
-//            }
-
             for (uint8_t i = 0; i < 10; ++i) {
                 const Card c1 = KINGDOM[i];
                 if(game_state.deck.num_of(c1) == 0){
                     continue;
                 }
                 const GameState one_card_moved = game_state.move_card_from_deck_to_hand(c1);
-                for (uint8_t j = 0; j < 10; ++j) {
+                for (uint8_t j = i; j < 10; ++j) {
                     const Card c2 = KINGDOM[j];
                     if(one_card_moved.deck.num_of(c2) == 0){
                         continue;
                     }
                     const GameState both_cards_moved = one_card_moved.move_card_from_deck_to_hand(c2);
-                    const uint16_t freq = game_state.deck.num_of(c1) * one_card_moved.deck.num_of(c2);
+                    uint16_t freq = game_state.deck.num_of(c1) * one_card_moved.deck.num_of(c2);
+                    if(i == j) {
+                        freq = freq / 2;
+                    }
                     new_game_states.emplace_back(both_cards_moved, freq);
                     if (DEBUG) cout << spaces(depth) << "combo : " << c1.name << (int) i << " : " << c2.name << (int) j << " : freq : " << freq << endl;
                 }
@@ -432,6 +419,7 @@ public:
                 has_action_in_hand = true;
                 const GameState new_game_state = game_state.move_card_from_hand_to_in_play(card, depth+1);
                 const float play_value = move_value(new_game_state, card, depth+1);
+                if(depth == 0) cout << "value of : " << card.name << " : " << play_value << endl;
                 if (play_value > best_value) {
                     best_value = play_value;
                     best_card_to_play = card.name;
@@ -453,8 +441,9 @@ int main() {
     const DominionSolver ds;
 
     Card_Vector deck = Card_Vector::from_vector({
-                                                        SILVER, COPPER, COPPER, COPPER,
-                                                        SILVER, LABORATORY, MARKET, MARKET
+                                                        SILVER, COPPER, COPPER, COPPER, COPPER,
+                                                        GOLD, LABORATORY, VILLAGE,
+                                                        SILVER, MARKET, MARKET, LABORATORY
                                                 });
     Card_Vector hand = Card_Vector::from_vector({
                                                         MILITIA, MARKET, LABORATORY, COPPER, COPPER
